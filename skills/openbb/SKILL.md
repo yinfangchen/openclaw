@@ -1,6 +1,6 @@
 ---
 name: openbb
-description: Query financial market data via the OpenBB Platform. Use when the user asks about stock prices, market data, economic indicators, ETFs, crypto, forex, fixed income, commodities, SEC filings, FRED data, news, or any financial research. Supports historical prices, fundamentals, screeners, and more. NOT for: trading/order execution, portfolio management, or financial advice.
+description: Financial market data and research via OpenBB Platform. Use when the user asks about stock prices, market movers, company fundamentals, earnings, economic indicators (CPI, GDP, rates, FRED), crypto, forex, or wants a research report on a stock. Provides 3 tools — market dashboard (quotes + movers), stock research reports (financials + metrics + estimates), and economic briefings (macro data). NOT for: trading execution, portfolio management, or financial advice.
 metadata:
   {
     "openclaw":
@@ -8,79 +8,101 @@ metadata:
   }
 ---
 
-# OpenBB Financial Data
+# OpenBB Financial Data Skill
 
-Query financial markets using the OpenBB Platform Python SDK.
+Query financial markets using the OpenBB Platform SDK. Requires `pip install openbb`.
 
-## Prerequisites
+Free data via `yfinance` provider works without API keys. Premium providers (FMP, Intrinio, Polygon, etc.) need keys set via `obb.user.credentials`.
 
-OpenBB must be installed: `pip install openbb`
+## Feature 1: Market Dashboard
 
-For premium data, users can set provider API keys:
-```python
-obb.user.credentials["fmp_api_key"] = "YOUR_KEY"
-```
-
-The free `yfinance` provider works for most equity/ETF/crypto queries without any API key.
-
-## Quick Reference
-
-Run queries via the bundled helper script:
+Quick market overview — watchlist quotes, top gainers/losers, and price snapshots.
 
 ```bash
-python3 SKILL_DIR/scripts/openbb_query.py <COMMAND> [OPTIONS]
+python3 SKILL_DIR/scripts/market_dashboard.py [OPTIONS]
 ```
-
-### Commands
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `price` | Historical price data | `price AAPL --days 30` |
-| `quote` | Current quote/snapshot | `quote AAPL MSFT GOOGL` |
-| `search` | Search for securities | `search "artificial intelligence"` |
-| `news` | Financial news | `news AAPL --limit 5` |
-| `income` | Income statement | `income AAPL --period annual --limit 4` |
-| `balance` | Balance sheet | `balance AAPL --period annual --limit 4` |
-| `cash` | Cash flow statement | `cash AAPL --period annual --limit 4` |
-| `crypto` | Crypto price history | `crypto BTC-USD --days 7` |
-| `forex` | Currency exchange rates | `forex EUR/USD --days 30` |
-| `economy` | Economic indicators | `economy GDP --country united_states` |
-| `etf` | ETF data | `etf SPY --days 30` |
-| `index` | Market index data | `index ^GSPC --days 30` |
-
-### Options
 
 | Flag | Description |
 |------|-------------|
-| `--days N` | Lookback period in days (default: 30) |
-| `--period P` | annual / quarter (for fundamentals) |
-| `--limit N` | Number of results |
+| `--symbols SYM1,SYM2` | Comma-separated watchlist (default: AAPL,MSFT,GOOGL,AMZN,NVDA) |
+| `--movers` | Show top gainers and losers |
+| `--days N` | Lookback for performance calc (default: 5) |
 | `--provider P` | Data provider (default: yfinance) |
-| `--output FORMAT` | table / json / csv (default: table) |
 
-## Direct Python Usage
+**Examples:**
+```bash
+# Default tech watchlist
+python3 SKILL_DIR/scripts/market_dashboard.py
 
-For complex queries not covered by the helper, use Python directly:
+# Custom watchlist with movers
+python3 SKILL_DIR/scripts/market_dashboard.py --symbols TSLA,META,NFLX --movers
 
-```python
-from openbb import obb
-
-# Equity screener
-obb.equity.screener(provider="fmp", market_cap_min=1e10)
-
-# Treasury rates
-obb.fixedincome.rate.ameribor(provider="fred")
-
-# SEC filings
-obb.regulators.sec.filings(symbol="AAPL", type="10-K", provider="sec")
-
-# Economic calendar
-obb.economy.calendar(provider="fmp")
+# Crypto watchlist
+python3 SKILL_DIR/scripts/market_dashboard.py --symbols BTC-USD,ETH-USD,SOL-USD
 ```
 
-## Output Formatting
+## Feature 2: Stock Research Report
 
-- For chat messages, present data as concise bullet points or small tables
-- For large datasets, summarize key metrics (high/low/change/volume)
-- Include percentage changes when showing price data
-- Use emoji for trend direction: 📈 up, 📉 down, ➡️ flat
+Deep-dive on a single company — profile, key metrics, financials, and analyst estimates.
+
+```bash
+python3 SKILL_DIR/scripts/stock_research.py SYMBOL [OPTIONS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--full` | Include all sections (default: summary only) |
+| `--financials` | Income statement, balance sheet, cash flow |
+| `--estimates` | Analyst estimates and EPS history |
+| `--dividends` | Dividend history |
+| `--provider P` | Data provider (default: yfinance) |
+
+**Examples:**
+```bash
+# Quick summary
+python3 SKILL_DIR/scripts/stock_research.py AAPL
+
+# Full research report
+python3 SKILL_DIR/scripts/stock_research.py AAPL --full
+
+# Just financials
+python3 SKILL_DIR/scripts/stock_research.py MSFT --financials
+```
+
+## Feature 3: Economic Briefing
+
+Macro economic overview — CPI, GDP, interest rates, unemployment, FRED series.
+
+```bash
+python3 SKILL_DIR/scripts/economic_briefing.py [OPTIONS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--cpi` | Consumer Price Index data |
+| `--gdp` | GDP growth data |
+| `--rates` | Interest rates (Fed Funds, Treasury yields) |
+| `--unemployment` | Unemployment rate |
+| `--fred SERIES_ID` | Query any FRED series by ID |
+| `--all` | All major indicators |
+| `--country C` | Country (default: united_states) |
+
+**Examples:**
+```bash
+# Full macro briefing
+python3 SKILL_DIR/scripts/economic_briefing.py --all
+
+# Just inflation data
+python3 SKILL_DIR/scripts/economic_briefing.py --cpi
+
+# Custom FRED series (e.g., 10Y Treasury)
+python3 SKILL_DIR/scripts/economic_briefing.py --fred DGS10
+```
+
+## Output Guidelines
+
+- Use emoji for direction: 📈 up, 📉 down, ➡️ flat
+- Keep chat output concise — bullet points over tables
+- For research reports, use structured sections with headers
+- Include percentage changes with +/- signs
+- Note data freshness (market hours, last update)
